@@ -3,17 +3,19 @@ import pprint
 import requests
 import shutil
 import operator
+import re
 
 class GoogleBooks:
 
     def get(self, author):
+        book_review = ''
         def rate(book):
             try:
                 rating = float(book['volumeInfo']['averageRating'])
             except KeyError:
                 return 0.0
             else:
-                if book['volumeInfo']['ratingsCount'] >= 10:
+                if book['volumeInfo']['ratingsCount'] >= 1:
                     return rating
                 else:
                     return 0.0
@@ -21,7 +23,8 @@ class GoogleBooks:
         url = 'https://www.googleapis.com/books/v1/volumes?q=+inauthor:' + str(author)
         data = requests.get(url).json()
         if int(data['totalItems'])==0:
-            print('Такого автора не существует:')
+            # print('Такого автора не существует:')
+            book_review += 'Такого автора не существует:\n'
         else:
             pass
 
@@ -44,29 +47,34 @@ class GoogleBooks:
         #3
         book_rate = dict()
         for ind, item in list_of_books:
-            book = item['volumeInfo']['title']
+            name = str(item['volumeInfo']['title'])
+            book = re.sub(r"[!=@#$?/,[.\]\\]", '',name)
             try:
                 pages = item['volumeInfo']['pageCount']
             except KeyError:
                 pages = 0
             book_rate[book] = rate(item)
             pict_path = os.path.join(path_dir, 'book cover '+f'{book}'+'.png')
-            check_image = item['volumeInfo']['readingModes']['image'] is True
-            if check_image:
+            try:
                 picture = item['volumeInfo']['imageLinks']['thumbnail']
                 r = requests.get(picture, stream=True)
                 if r.status_code == 200:
                     with open(pict_path, 'wb') as f:
                         r.raw.decode_content = True
                         shutil.copyfileobj(r.raw, f)
-            else:
-                print(f'Не существует обложки для книги {book}')
+            except KeyError:
+                pass
+                # print(f'Не существует обложки для книги {book}')
+
         rate_values = set(book_rate.values())
         if len(rate_values) == 1 and 0.0 in set(rate_values):
-            print('Отсутствуют оценки произведений этого автора')
+            book_review += f'Отсутствуют оценки произведений этого автора'
         else:
             sorted_by_rating = sorted(book_rate.items(), key = operator.itemgetter(1), reverse=True)
-            print(f'Рекомендую к прочтению книгу {sorted_by_rating[0][0]} с рейтингом {sorted_by_rating[0][1]}')
+            max_rate = sorted_by_rating[0][1]
+            book_review += f'Рекомендую к прочтению книгу {sorted_by_rating[0][0]} с рейтингом {max_rate}'
+
+        return book_review
 
 
 class AuthorBook:
