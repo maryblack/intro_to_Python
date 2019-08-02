@@ -1,80 +1,62 @@
 import os
-import pprint
 import requests
 import shutil
-import operator
 import re
+from typing import Optional
+from pprint import pprint
+
+
+class Book:
+    def __init__(self, book_info):
+        self._volume_info = book_info['volumeInfo']
+        self.author = self._volume_info['authors'][0] if 'authors' in self._volume_info else 'Нет автора'
+        self.title = self._volume_info['title']
+
+    def __repr__(self):
+        return f'Book: "{self.title}", pages:{self.pages}'
+
+    @property
+    def pages(self) -> Optional[int]:
+        if 'pageCount' in self._volume_info:
+            return self._volume_info['pageCount']
+        return None
+
+    @property
+    def rate(self) -> Optional[float]:
+        info = self._volume_info
+        if 'averageRating' in info and 'ratingsCount' in info and info['ratingsCount']>=1:
+            return float(info['averageRating'])
+        return None
+
+    def save_book_cover(self):
+        image_name = re.sub(r"[!=@#$?/,[.\]\\]", '', self.title)
+        pict_path = os.path.join(os.getcwd(), f'book_cover_{image_name}.png')
+        if 'imageLinks' in self._volume_info:
+            picture = self._volume_info['imageLinks']['thumbnail']
+            r = requests.get(picture, stream=True)
+            if r.status_code == 200:
+                with open(pict_path, 'wb') as f:
+                    r.raw.decode_content = True
+                    shutil.copyfileobj(r.raw, f)
+        else:
+            print(f'Не существует обложки для книги {self.title}')
+
+
+
+
 
 class GoogleBooks:
 
-    def get(self, author):
-        book_review = ''
-        def rate(book):
-            try:
-                rating = float(book['volumeInfo']['averageRating'])
-            except KeyError:
-                return 0.0
-            else:
-                if book['volumeInfo']['ratingsCount'] >= 1:
-                    return rating
-                else:
-                    return 0.0
-
+    def get_books(self, author) -> list:
         url = 'https://www.googleapis.com/books/v1/volumes?q=+inauthor:' + str(author)
         data = requests.get(url).json()
         if int(data['totalItems'])==0:
-            # print('Такого автора не существует:')
-            book_review += 'Такого автора не существует:\n'
-        else:
-            pass
-
-        path_dir = os.path.join(os.getcwd(), 'tmp_pictures'+f'_{author}')
-        try:
-            # files = glob.glob(path_dir)
-            # for f in files:
-            #     os.remove(f)
-            os.mkdir(path_dir)
-
-        except OSError:
-            print("Директория %s уже создана" % path_dir)
-        else:
-            print("Успешно создана директория %s " % path_dir)
-
-
-
-        list_of_books = enumerate(data['items'])
-        #averageRating
-        #3
-        book_rate = dict()
-        for ind, item in list_of_books:
-            name = str(item['volumeInfo']['title'])
-            book = re.sub(r"[!=@#$?/,[.\]\\]", '',name)
-            try:
-                pages = item['volumeInfo']['pageCount']
-            except KeyError:
-                pages = 0
-            book_rate[book] = rate(item)
-            pict_path = os.path.join(path_dir, 'book cover '+f'{book}'+'.png')
-            try:
-                picture = item['volumeInfo']['imageLinks']['thumbnail']
-                r = requests.get(picture, stream=True)
-                if r.status_code == 200:
-                    with open(pict_path, 'wb') as f:
-                        r.raw.decode_content = True
-                        shutil.copyfileobj(r.raw, f)
-            except KeyError:
-                pass
-                # print(f'Не существует обложки для книги {book}')
-
-        rate_values = set(book_rate.values())
-        if len(rate_values) == 1 and 0.0 in set(rate_values):
-            book_review += f'Отсутствуют оценки произведений этого автора'
-        else:
-            sorted_by_rating = sorted(book_rate.items(), key = operator.itemgetter(1), reverse=True)
-            max_rate = sorted_by_rating[0][1]
-            book_review += f'Рекомендую к прочтению книгу {sorted_by_rating[0][0]} с рейтингом {max_rate}'
-
-        return book_review
+            print('Такого автора не существует:')
+            return []
+        books = []
+        for item in data['items']:
+            books.append(Book(item))
+        return books
 
 
 class AuthorBook:
@@ -84,7 +66,7 @@ class AuthorBook:
         self._book = info_provider or GoogleBooks()
 
     def library_info(self):
-        return self._book.get(self.author)
+        return self._book.get_books(self.author)
 
 
 def _main():
@@ -95,7 +77,7 @@ def _main():
         else:
             author = AuthorBook(name)
             book = author.library_info()
-            pprint.pprint(book)
+            pprint(book)
 
 
 if __name__ == "__main__":
