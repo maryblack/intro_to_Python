@@ -28,9 +28,9 @@ class Book:
             return float(info['averageRating'])
         return None
 
-    def save_book_cover(self):
-        image_name = re.sub(r"[!=@#$?/,[.\]\\]", '', self.title)
-        pict_path = os.path.join(os.getcwd(), f'book_cover_{image_name}.png')
+    def save_book_cover(self, path = os.getcwd()):
+        image_name = re.sub(r"[\"!=@#$?/,[.\]]", '', self.title)
+        pict_path = os.path.join(path, f'book_cover_{image_name}.png')
         if 'imageLinks' in self._volume_info:
             picture = self._volume_info['imageLinks']['thumbnail']
             r = requests.get(picture, stream=True)
@@ -76,8 +76,11 @@ def _main():
             break
         else:
             author = AuthorBook(name)
-            book = author.library_info()
-            pprint(book)
+            books = author.library_info()
+            path = 'C:\\Users\Admin\PycharmProjects\intro_to_Python\week_3\\tmp'
+            for book in books:
+                book.save_book_cover(path)
+            pprint(books)
 
 
 if __name__ == "__main__":
