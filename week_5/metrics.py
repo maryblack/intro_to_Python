@@ -27,7 +27,7 @@ class Client:
     def get(self, key):
 
         def make_dict(str):
-            print(f'|||data|||: {str}')
+            # print(f'|||data|||: {str}')
             dict_answer = {}
             answer = str.split('\n')
             if answer[0] == 'error':
@@ -40,21 +40,16 @@ class Client:
                 value = float(metric[1])
                 timestamp = int(metric[2])
                 key_tuple = (timestamp, value)
-                print(f'value:{value}   timestamp: {timestamp}')
-                print(f'tuple: {key_tuple}')
-                if key in [*dict_answer]:
-                    curr_value = dict_answer[key]
-                    add_value = curr_value.append(key_tuple)
-                    dict_answer[key] = add_value
+                # print(f'value:{value}   timestamp: {timestamp}')
+                # print(f'key: {key}|||tuple: {key_tuple}')
+                if key in [*dict_answer]:#не создается нормально список пар
+                    dict_answer[key].append(key_tuple)
                 else:
-                    dict_answer[key] = list(key_tuple)
-            print(f'|||before sort|||: {dict_answer}')
+                    dict_answer[key] = [key_tuple]
+            # print(f'|||before sort|||: {dict_answer}')
             # if len(dict_answer) == 0:
             #     return {}
-            for i in range(len(dict_answer)):
-                # if dict_answer[i] is None:
-                #     dict_answer[i] = []
-                # else:
+            for i in dict_answer:
                 dict_answer[i] = sorted(dict_answer[i], key = lambda element : element[0])
             return dict_answer
 
@@ -72,12 +67,11 @@ class Client:
         return dict_answer
 
 
+
 #
 # def main():
-#     test = Client("127.0.0.1", 10001)
-#     test.put('test','only', 76850)
-#     test.put('test2', 'hahaofigenno')
-#     test.get('*')
+#     my_dict = make_dict(f'ok\ntest 0.5 1\ntest 0.4 2\nload 301 3\n\n')
+#     print(my_dict)
 #
 # if __name__ == '__main__':
 #     main()
