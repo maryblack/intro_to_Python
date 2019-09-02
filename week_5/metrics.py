@@ -21,7 +21,9 @@ class Client:
             data = sock.recv(1024)
             if data.decode('utf8') != 'ok\n\n':
                 raise ClientError
-        except Exception:
+        except Exception as e:
+            print(e)
+        except InterruptedError:
             raise ClientError
 
     def get(self, key):
