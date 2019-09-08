@@ -1,6 +1,7 @@
 import asyncio
 
-METRICS = {}# recieving data storage
+METRICS = {}  # recieving data storage
+
 
 class ClientServerProtocol(asyncio.Protocol):
 
@@ -29,23 +30,24 @@ class ClientServerProtocol(asyncio.Protocol):
         if len(spl_resp) != 2:
             return 'error\nwrong command\n\n'
         # answer = ''
-        key = spl_resp[1][0]
+        key = spl_resp[1][:-1]
         list_answ = []
+
         if key == '*':
-            # print(f'TAKE THEM ALL')
-            # print(METRICS)
+            print(f'TAKE THEM ALL')
+            print(METRICS)
             for el in METRICS:
                 list_answ.extend(METRICS[el])
         else:
-            if key != '*' and key not in METRICS:
+            if key not in METRICS:
                 return 'ok\n\n'
             else:
+                print(f'key {key} values {METRICS[key]}')
                 list_answ.extend(METRICS[key])
 
-        res = 'ok\n'+''.join(list_answ)+'\n'
+        # print(f'get answer {list_answ}')
+        res = 'ok\n' + ''.join(list_answ) + '\n'
         return res
-
-
 
     def put(self, spl_resp):
 
@@ -66,8 +68,6 @@ class ClientServerProtocol(asyncio.Protocol):
         return 'ok\n\n'
 
 
-
-
 def run_server(host='127.0.0.1', port=8888):
     loop = asyncio.get_event_loop()
     coro = loop.create_server(
@@ -86,6 +86,6 @@ def run_server(host='127.0.0.1', port=8888):
     loop.run_until_complete(server.wait_closed())
     loop.close()
 
+
 if __name__ == '__main__':
     run_server()
-
